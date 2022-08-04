@@ -1,0 +1,10 @@
+#Ignore pycache
+**/__pycache__
+
+#Ignore config files
+*.cfg
+*.csv
+
+#Ignore session files
+*.session
+*.session_journal
