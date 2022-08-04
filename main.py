@@ -14,7 +14,7 @@ from modules import tools
 cfg = ConfigObj('config.cfg')
 
 ACCOUNTS = ast.literal_eval(cfg.get('ACCOUNTS'))
-PARSER_PASSWORD = cfg.get('PARSER_PHONE')
+PARSER_PASSWORD = cfg.get('PARSER_PASSWORD')
 PARSER_PHONE = cfg.get('PARSER_PHONE')
 API_HASH = cfg.get('API_HASH')
 API_ID = cfg.get('API_ID')
@@ -185,6 +185,9 @@ async def check_number() -> None:
 
 async def main() -> None:
     users = []
+
+    print('Script started...')
+
 
     if PARSER_TYPE == 'group':
         users = await group_parser()
