@@ -64,7 +64,7 @@ async def _authorization() -> list[TelegramClient]:
 async def group_parser():
     """
         Parse the audience from the groups to which the user is added.
-        Ignores bots.
+        Ignores bots and deleted accounts.
     """
 
     users = set()
@@ -83,22 +83,20 @@ async def group_parser():
 async def comment_parser():
     """
         Parse the audience from the comments of the channels in which the user is added.
+        Ignores bots and deleted accounts.
     """
 
     users = set()
 
     async for dialog in parser.iter_dialogs(100):
-        if dialog.is_channel:
+        if dialog.is_channel and dialog.message.replies:
             await asyncio.sleep(3)
 
-            try:
-                async for message in parser.iter_messages(dialog.id, reply_to=dialog.message.id):
-                    sender = message.sender
+            async for message in parser.iter_messages(dialog.id, reply_to=dialog.message.id):
+                sender = message.sender
 
-                    if isinstance(sender, User) and sender.bot is False and sender.deleted is False:
-                        users.add(f'{sender.username or ""}, {sender.phone or ""}\n')
-            except (errors.PeerIdInvalidError, errors.MsgIdInvalidError):
-                continue
+                if isinstance(sender, User) and sender.bot is False and sender.deleted is False:
+                    users.add(f'{sender.username or ""}, {sender.phone or ""}\n')
 
     tools.write_users(users)
 
