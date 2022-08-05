@@ -27,6 +27,10 @@ MAILING = cfg.as_bool('MAILING')
 MESSAGE = cfg.get('MESSAGE')
 CHANNEL = cfg.get('CHANNEL')
 
+USER_DATA_PATH = cfg.get('USER_DATA_PATH')
+PHONE_PATH = cfg.get('PHONE_PATH')
+MEDIA_PATH = cfg.get('MEDIA_PATH')
+
 
 if not os.path.isdir('data'):
     os.mkdir('data')
@@ -57,7 +61,7 @@ async def _authorization() -> list[TelegramClient]:
     return clients
 
 
-async def group_parser() -> set[tuple[int, str, str]]:
+async def group_parser():
     """
         Parse the audience from the groups to which the user is added.
         Ignores bots.
@@ -65,19 +69,18 @@ async def group_parser() -> set[tuple[int, str, str]]:
 
     users = set()
 
-    async for dialog in parser.iter_dialogs(1):
+    async for dialog in parser.iter_dialogs(100):
         if dialog.is_group:
             await asyncio.sleep(3)
 
             async for user in parser.iter_participants(dialog.id, aggressive=False):
                 if user.bot is False and user.deleted is False:
-                    users.add((user.id, user.username or '', user.phone or ''))
+                    users.add(f'{user.username or ""}, {user.phone or ""}\n')
 
     tools.write_users(users)
-    return users
 
 
-async def comment_parser() -> set[tuple[int, str, str]]:
+async def comment_parser():
     """
         Parse the audience from the comments of the channels in which the user is added.
     """
@@ -93,15 +96,14 @@ async def comment_parser() -> set[tuple[int, str, str]]:
                     sender = message.sender
 
                     if isinstance(sender, User) and sender.bot is False and sender.deleted is False:
-                        users.add((sender.id, sender.username or '', sender.phone or ''))
+                        users.add(f'{sender.username or ""}, {sender.phone or ""}\n')
             except (errors.PeerIdInvalidError, errors.MsgIdInvalidError):
                 continue
 
     tools.write_users(users)
-    return users
 
 
-async def inviter(users: set[tuple[int, str, str]]) -> None:
+async def inviter() -> None:
     """
         Invites users to a channel using multiple accounts.
     """
@@ -109,11 +111,11 @@ async def inviter(users: set[tuple[int, str, str]]) -> None:
     clients = await _authorization()
     step = 0
 
-    for user_id, _, _ in users:
+    for entity in tools.read_entitys(USER_DATA_PATH):
         client = clients[step]
 
         try:
-            await client(InviteToChannelRequest(CHANNEL, [user_id]))
+            await client(InviteToChannelRequest(CHANNEL, [entity]))
         except errors.FloodWaitError:
             continue
         except ValueError:
@@ -127,7 +129,7 @@ async def inviter(users: set[tuple[int, str, str]]) -> None:
         await asyncio.sleep(1)
 
 
-async def mailing(users: set[tuple[int, str, str]]) -> None:
+async def mailing() -> None:
     """
         Sends messages to users using multiple accounts.
     """
@@ -135,11 +137,14 @@ async def mailing(users: set[tuple[int, str, str]]) -> None:
     clients = await _authorization()
     step = 0
 
-    for user_id, _, _ in users:
+    for entity in tools.read_entitys(USER_DATA_PATH):
         client = clients[step]
 
         try:
-            await client.send_message(user_id, MESSAGE)
+            if os.path.exists(MEDIA_PATH):
+                await client.send_message(entity, MESSAGE, file=MEDIA_PATH)
+            else:
+                await client.send_message(entity, MESSAGE)
         except errors.FloodWaitError:
             continue
         except ValueError:
@@ -162,11 +167,11 @@ async def check_number() -> None:
     valid_phone = set()
     step = 0
 
-    for phone in tools.read_phone():
+    for phone in tools.read_entitys(PHONE_PATH, True):
         client = clients[step]
 
         try:
-            await client.get_input_entity(phone)
+            user = await client.get_entity(phone)
         except errors.FloodWaitError:
             continue
         except ValueError:
@@ -177,27 +182,24 @@ async def check_number() -> None:
         else:
             step = 0
 
-        valid_phone.add(f'{phone}\n')
+        valid_phone.add(f'{phone}, {user.username}\n')
         await asyncio.sleep(1)
 
     tools.write_phone(valid_phone)
 
 
 async def main() -> None:
-    users = []
-
     print('Script started...')
 
-
     if PARSER_TYPE == 'group':
-        users = await group_parser()
+        await group_parser()
     elif PARSER_TYPE == 'comment':
-        users = await comment_parser()
+        await comment_parser()
 
     if INVITING:
-        await inviter(users)
+        await inviter()
     if MAILING:
-        await mailing(users)
+        await mailing()
     if CHECK_NUMBER:
         await check_number()
 
