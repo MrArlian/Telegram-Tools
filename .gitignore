@@ -1,10 +1,16 @@
 #Ignore pycache
 **/__pycache__
 
-#Ignore config files
-*.cfg
+#Ignore other files
+*.txt
 *.csv
 
+!requirements.txt
+
+#Ignore session folders
+session/**/profile*
+session/**/tdata
+
 #Ignore session files
-*.session
-*.session-journal
+session/**/*.session
+session/**/*.session-journal
