@@ -17,7 +17,9 @@ def write_phone(phones: typing.Iterable[str]) -> None:
         file.writelines(phones)
 
 
-def read_entitys(path: str, only_phone: bool = False) -> typing.Iterable[str]:
+def read_entitys(path: str,
+                 only_phone: bool = False,
+                 only_username: bool = False) -> typing.Iterable[str]:
     entitys = []
 
     if not os.path.exists(path):
@@ -29,7 +31,7 @@ def read_entitys(path: str, only_phone: bool = False) -> typing.Iterable[str]:
 
             if re.match(r'^([a-z0-9_]{5,32})$', entity.lower()) and only_phone is False:
                 entitys.append(entity)
-            elif re.match(r'^((\+(7|38|1))?\d{10})$', entity):
+            if re.match(r'^((\+(7|38|1))?\d{10})$', entity) and only_username is False:
                 entitys.append(entity)
 
     return entitys

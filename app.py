@@ -149,8 +149,8 @@ class MainApp(tkinter.Frame):
             return logger.update('Добавьте файл с аккаунтами.')
         if IS_MAILING.get() and not FILE_PATHS.get('text'):
             return logger.update('Добавьте файл с сообщением.')
-        if IS_SPAM.get() and not FILE_PATHS.get('text'):
-            return logger.update('Добавьте файл с сообщением.')
+        if IS_SPAM.get() and not FILE_PATHS.get('account'):
+            return logger.update('Добавьте файл с каналами.')
         if IS_REPORT.get() and not FILE_PATHS.get('account'):
             return logger.update('Добавьте файл с аккаунтами.')
 

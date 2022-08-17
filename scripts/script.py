@@ -9,7 +9,7 @@ from telethon import errors
 
 from modules import StartEvent, LogVar, tools
 
-from .utils import inviter, mailing, check_number
+from .utils import inviter, mailing, check_number, spam
 from .parser import group_parser, comment_parser
 
 
@@ -80,10 +80,8 @@ def start_script(app, event: StartEvent) -> None:
         loop.run_until_complete(mailing(clients, account, text, media))
     if event.is_inviting:
         loop.run_until_complete(inviter(clients, account, event.channel))
-    if event.is_report:
-        pass
     if event.is_spam:
-        pass
+        loop.run_until_complete(spam(clients, account, text))
 
     event.logger.update('Процесс завершен!')
     tools.change_state(app, 'normal')
