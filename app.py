@@ -1,5 +1,6 @@
 import threading
 import tkinter
+import os
 
 from tkinter import filedialog
 
@@ -165,6 +166,16 @@ class MainApp(tkinter.Frame):
         threading.Thread(target=start_script, args=(self, event)).start()
 
 
-if __name__ == '__main__':
+def main() -> None:
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+    if not os.path.isdir('session'):
+        os.makedirs('session/parser')
+        os.makedirs('session/user')
+
     app = MainApp(root)
     app.mainloop()
+
+
+if __name__ == '__main__':
+    main()
