@@ -2,7 +2,6 @@ import itertools
 import asyncio
 import typing
 import glob
-import os
 
 from opentele.api import UseCurrentSession
 from opentele import exception, td, tl
@@ -17,13 +16,11 @@ from .parser import group_parser, comment_parser
 async def _authorization_accounts(logger: LogVar) -> typing.Iterator[tl.TelegramClient]:
     clients = []
 
-    for profile_path in glob.glob('session/user/profile_*[0-9?]'):
-        profile = os.path.basename(profile_path)
-
+    for profile in glob.glob('session/user/profile_*[0-9?]'):
         try:
-            tdesk = td.TDesktop(profile_path)
+            tdesk = td.TDesktop(profile)
         except (exception.TFileNotFound, exception.OpenTeleException):
-            logger.update(f'Ошибка авторизации для {profile}')
+            logger.update(f'Ошибка авторизации для {profile.split("/")[-1]}')
             continue
 
         client = await tdesk.ToTelethon(flag=UseCurrentSession)
@@ -37,13 +34,17 @@ async def _authorization_accounts(logger: LogVar) -> typing.Iterator[tl.Telegram
         clients.append(client)
 
     if len(clients) == 0:
-        raise ValueError
+        raise ValueError('Обновите profile в session/user')
 
     return itertools.cycle(clients)
 
 
 async def _authorization_parser() -> tl.TelegramClient:
-    tdesk = td.TDesktop('session/parser/tdata')
+
+    try:
+        tdesk = td.TDesktop('session/parser/tdata')
+    except (exception.TFileNotFound, exception.OpenTeleException) as err:
+        raise ValueError('Обновите tdata в session/parser') from err
 
     client = await tdesk.ToTelethon(flag=UseCurrentSession)
     await client.connect()
@@ -61,25 +62,22 @@ def start_script(app, event: StartEvent) -> None:
     phone = paths.get('phone')
     text = paths.get('text')
 
+
     try:
         clients = loop.run_until_complete(_authorization_accounts(event.logger))
-    except ValueError:
-        return event.logger.update('Обновите tdata в session/user')
-
-    try:
         client = loop.run_until_complete(_authorization_parser())
-    except (exception.TFileNotFound, exception.OpenTeleException):
-        return event.logger.update('Ошибка авторизации для парсера.')
+    except ValueError as err:
+        return event.logger.update(err)
 
-    if event.parser == 'channel':
+    if event.is_channel_parser:
         loop.run_until_complete(comment_parser(client))
-    elif event.parser == 'group':
+    elif event.is_group_parser:
         loop.run_until_complete(group_parser(client))
 
-    if event.in_check_phone:
+    if event.is_check_phone:
         loop.run_until_complete(check_number(clients, phone))
     if event.is_mailing:
-        loop.run_until_complete(mailing(clients, account, media, text))
+        loop.run_until_complete(mailing(clients, account, text, media))
     if event.is_inviting:
         loop.run_until_complete(inviter(clients, account, event.channel))
     if event.is_report:

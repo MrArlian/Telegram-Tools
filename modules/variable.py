@@ -1,5 +1,6 @@
 import tkinter
 
+
 class LogVar(tkinter.Variable):
 
     def __init__(self, root: tkinter.Tk, value: str = None, name: str = None) -> None:

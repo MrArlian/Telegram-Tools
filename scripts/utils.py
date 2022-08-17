@@ -30,9 +30,9 @@ async def inviter(clients: typing.Iterator[tl.TelegramClient],
 
 
 async def mailing(clients: typing.Iterator[tl.TelegramClient],
-                  user_data_path: str,
-                  media_path: str,
-                  message_path: str) -> None:
+                  user_path: str,
+                  message_path: str,
+                  media_path: str) -> None:
     """
         Sends messages to users using multiple accounts.
     """
@@ -40,7 +40,7 @@ async def mailing(clients: typing.Iterator[tl.TelegramClient],
     with open(message_path, 'r', encoding='UTF-8') as file:
         message = file.read() or '.'
 
-    for entity in tools.read_entitys(user_data_path):
+    for entity in tools.read_entitys(user_path):
         client = next(clients)
 
         try:

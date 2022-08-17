@@ -11,10 +11,11 @@ class StartEvent:
 
     logger: LogVar
 
-    in_check_phone: typing.Optional[bool] = None
+    is_channel_parser: typing.Optional[bool] = None
+    is_group_parser: typing.Optional[bool] = None
+
+    is_check_phone: typing.Optional[bool] = None
     is_inviting: typing.Optional[bool] = None
     is_mailing: typing.Optional[bool] = None
     is_report: typing.Optional[bool] = None
     is_spam: typing.Optional[bool] = None
-
-    parser: typing.Optional[str] = None
