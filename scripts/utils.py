@@ -7,18 +7,21 @@ from telethon.tl.custom.message import Message
 from telethon import errors
 from opentele import tl
 
-from modules import tools
+from modules import LogVar, tools
 
 
 async def inviter(clients: typing.Iterator[tl.TelegramClient],
                   path: str,
-                  channel: str) -> None:
+                  channel: str,
+                  logger: LogVar) -> None:
     """
         Invites users to a channel using multiple accounts.
     """
 
+    logger.update('Инвайтер запущен.')
+
     for entity in tools.read_entitys(path):
-        client = next(clients)
+        client, profile = next(clients)
 
         try:
             await client(InviteToChannelRequest(channel, [entity]))
@@ -27,13 +30,15 @@ async def inviter(clients: typing.Iterator[tl.TelegramClient],
         except ValueError:
             continue
 
+        logger.update(f'{profile} - Пригласил - {entity}')
         await asyncio.sleep(1)
 
 
 async def mailing(clients: typing.Iterator[tl.TelegramClient],
                   user_path: str,
                   message_path: str,
-                  media_path: str) -> None:
+                  media_path: str,
+                  logger: LogVar) -> None:
     """
         Sends messages to users using multiple accounts.
     """
@@ -42,11 +47,13 @@ async def mailing(clients: typing.Iterator[tl.TelegramClient],
     if not os.path.exists(message_path):
         return
 
+    logger.update('Рассылка запущена.')
+
     with open(message_path, 'r', encoding='UTF-8') as file:
         message = file.read() or '.'
 
     for entity in tools.read_entitys(user_path):
-        client = next(clients)
+        client, profile = next(clients)
 
         try:
             if os.path.exists(media_path):
@@ -58,18 +65,23 @@ async def mailing(clients: typing.Iterator[tl.TelegramClient],
         except ValueError:
             continue
 
+        logger.update(f'{profile} - Отправил сообщение - {entity}')
         await asyncio.sleep(1)
 
 
-async def check_number(clients: typing.Iterator[tl.TelegramClient], path: str) -> None:
+async def check_number(clients: typing.Iterator[tl.TelegramClient],
+                       path: str,
+                       logger: LogVar) -> None:
     """
         Checks the phone number for presence in the telegram database.
     """
 
     valid_phone = set()
 
+    logger.update('Проверка номеров запущена.')
+
     for phone in tools.read_entitys(path, only_phone=True):
-        client = next(clients)
+        client, _ = next(clients)
 
         try:
             user = await client.get_entity(phone)
@@ -86,7 +98,8 @@ async def check_number(clients: typing.Iterator[tl.TelegramClient], path: str) -
 
 async def spam(clients: typing.Iterator[tl.TelegramClient],
                channel_path: str,
-               message_path: str) -> None:
+               message_path: str,
+               logger: LogVar) -> None:
     """
         Spammer in channel comments. Uses the latest post to send the message.
     """
@@ -94,11 +107,13 @@ async def spam(clients: typing.Iterator[tl.TelegramClient],
     if not os.path.exists(message_path):
         return
 
+    logger.update('Спамер запущен.')
+
     with open(message_path, 'r', encoding='UTF-8') as file:
         text = file.read() or '.'
 
     for channel in tools.read_entitys(channel_path, only_username=True):
-        client = next(clients)
+        client, _ = next(clients)
 
         try:
             message = await client.get_messages(channel, 1)[0]

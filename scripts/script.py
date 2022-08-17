@@ -2,6 +2,7 @@ import itertools
 import asyncio
 import typing
 import glob
+import os
 
 from opentele.api import UseCurrentSession
 from opentele import exception, td, tl
@@ -16,11 +17,13 @@ from .parser import group_parser, comment_parser
 async def _authorization_accounts(logger: LogVar) -> typing.Iterator[tl.TelegramClient]:
     clients = []
 
-    for profile in glob.glob('session/user/profile_*[0-9?]'):
+    for profile_path in glob.glob('session/user/profile_*[0-9?]'):
+        profile = os.path.basename(profile_path)
+
         try:
-            tdesk = td.TDesktop(profile)
+            tdesk = td.TDesktop(profile_path)
         except (exception.TFileNotFound, exception.OpenTeleException):
-            logger.update(f'Ошибка авторизации для {profile.split("/")[-1]}')
+            logger.update(f'Ошибка авторизации для {profile}')
             continue
 
         client = await tdesk.ToTelethon(flag=UseCurrentSession)
@@ -31,7 +34,7 @@ async def _authorization_accounts(logger: LogVar) -> typing.Iterator[tl.Telegram
         except errors.FloodWaitError:
             continue
 
-        clients.append(client)
+        clients.append((client, profile))
 
     if len(clients) == 0:
         raise ValueError('Обновите profile в session/user')
@@ -56,7 +59,9 @@ def start_script(app, event: StartEvent) -> None:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    logger = event.logger
     paths = event.paths
+
     account = paths.get('account')
     media = paths.get('media', '')
     phone = paths.get('phone')
@@ -64,7 +69,7 @@ def start_script(app, event: StartEvent) -> None:
 
 
     try:
-        clients = loop.run_until_complete(_authorization_accounts(event.logger))
+        clients = loop.run_until_complete(_authorization_accounts(logger))
         client = loop.run_until_complete(_authorization_parser())
     except ValueError as err:
         return event.logger.update(err)
@@ -75,13 +80,13 @@ def start_script(app, event: StartEvent) -> None:
         loop.run_until_complete(group_parser(client))
 
     if event.is_check_phone:
-        loop.run_until_complete(check_number(clients, phone))
+        loop.run_until_complete(check_number(clients, phone, logger))
     if event.is_mailing:
-        loop.run_until_complete(mailing(clients, account, text, media))
+        loop.run_until_complete(mailing(clients, account, text, media, logger))
     if event.is_inviting:
-        loop.run_until_complete(inviter(clients, account, event.channel))
+        loop.run_until_complete(inviter(clients, account, event.channel, logger))
     if event.is_spam:
-        loop.run_until_complete(spam(clients, account, text))
+        loop.run_until_complete(spam(clients, account, text, logger))
 
     event.logger.update('Процесс завершен!')
     tools.change_state(app, 'normal')
