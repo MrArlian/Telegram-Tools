@@ -43,7 +43,6 @@ async def mailing(clients: typing.Iterator[tl.TelegramClient],
         Sends messages to users using multiple accounts.
     """
 
-
     if not os.path.exists(message_path):
         return
 
