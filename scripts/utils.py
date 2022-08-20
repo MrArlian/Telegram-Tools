@@ -115,7 +115,7 @@ async def spam(clients: typing.Iterator[tl.TelegramClient],
         client, _ = next(clients)
 
         try:
-            message = await client.get_messages(channel, 1)[0]
+            message = (await client.get_messages(channel, 1))[0]
 
             if isinstance(message, Message) and message.replies:
                 await client.send_message(channel, text, comment_to=message.id)
